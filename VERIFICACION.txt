@@ -1,0 +1,38 @@
+VERIFICACIÓN DEL INSTALADOR COMPLETO
+Fecha: 24 de noviembre de 2026
+Agente incluido: inventario-telemetria 0.2.0
+
+Resultado: 10 pruebas locales aprobadas.
+
+Pruebas ejecutadas:
+1. Sintaxis Bash e integridad del paquete incluido mediante --check.
+2. Rechazo de un paquete embebido cuyo contenido fue alterado.
+3. Código INV visible al introducirlo en una terminal real (PTY), entregado
+   correctamente al instalador y ausente de la bitácora y los argumentos.
+4. Clave general opcional oculta en la terminal y ausente de logs/argumentos.
+5. Conservación del código de salida ante un fallo del instalador hijo.
+6. Rechazo de otra URL de receptor sin cambiar configuración ni identidad.
+7. Respaldo de un entorno virtual incompatible cuando el servicio está inactivo.
+8. Conservación de un entorno incompatible si su servicio está activo.
+9. Restauración del entorno anterior ante un fallo previo a completar el
+   instalador, conservando además el entorno fallido para revisión.
+10. Fallo seguro si no puede crearse el directorio temporal de prueba de venv;
+    no se intenta crear un entorno en /venv.
+
+Comando de pruebas en el proyecto de origen:
+  python3 -m unittest tests/test_complete_installer.py -v
+
+También se ejecutó:
+  bash -n output/instalar-inventario-linux.sh
+  bash output/instalar-inventario-linux.sh --check
+  bash output/instalar-inventario-linux.sh --help
+
+Alcance: estas pruebas validaron el nuevo script con fixtures locales y una
+terminal de prueba. No ejecutaron sudo, conexiones de red ni instalación de
+servicios reales. El nuevo script no se ejecutó como instalador en otro equipo.
+
+El procedimiento base, el agente 0.2.0 y el runtime aislado 3.12.16 sí se
+instalaron y verificaron en 10.18.1.3 y 10.18.1.6; sus bitácoras están en
+documentacion/. Cada bitácora acredita su ejecución concreta.
+
+La carpeta distribuida incluye SHA256SUMS.txt para verificar todos sus archivos.

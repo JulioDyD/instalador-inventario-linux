@@ -1,0 +1,221 @@
+BITÁCORA TÉCNICA - INSTALACIÓN REMOTA
+Fecha: 24 de noviembre de 2026 | America/Bogota
+Equipo: 10.18.1.3 | aydx-losmolinos-printer-p9-01
+Acceso: SSH, usuario soporte
+
+PREPARACIÓN Y DIAGNÓSTICO
+Se verificó SSH (22 accesible); RDP/WinRM (3389/5985/5986) rechazaron la conexión.
+Linux Mint 20.2 Uma, Ubuntu focal, kernel 5.15.0-91-generic x86_64, glibc 2.31.
+Python sistema: 3.8.10. Espacio libre inicial: 91 GB. No existía servicio ni configuración/identidad del agente.
+Existía un entorno virtual parcial 3.8 en /opt/inventario-telemetria/venv.
+
+Comandos ejecutados de diagnóstico:
+date --iso-8601=seconds; hostname; id; uname -srm; cat /etc/os-release; python3 --version
+systemctl is-active telemetry-agent.service; systemctl is-enabled telemetry-agent.service
+df -h /opt /tmp
+
+Receptor: https://inventario-api-jryilooe3a-uc.a.run.app
+curl --fail --silent --show-error --max-time 20 https://inventario-api-jryilooe3a-uc.a.run.app/health
+Resultado: {"ok":true,"runtime":"node","project_id":"inventario-equipos-dyd-261117"}
+
+PAQUETE Y RUNTIME
+Generación local: python3 scripts/package-agent.py
+ZIP: inventario-agente-0.2.0.zip
+SHA-256 ZIP: 95f7c6985e3bbdbf835c264239789f9cdd6a14901189f0efe4499f0f248f2331
+SCP al directorio privado: /home/soporte/inventario-install-20261124
+Python portable: Astral CPython 3.12.16, release 20261123, x86_64-unknown-linux-gnu
+SHA-256 runtime: c85811d35971d06612585a057db3b71806378df6ea8476275fb16aa5c9fe56a0
+Ambas huellas verificadas en destino: La suma coincide.
+Secreto de inscripción transferido por SSH cifrado. Su copia temporal fue eliminada al terminar.
+
+PREPARACIÓN DEL RUNTIME Y RESPALDO
+COMANDO:
+cd /home/soporte/inventario-install-20261124 && sha256sum -c inventario-agente-0.2.0.zip.sha256 && unzip -q inventario-agente-0.2.0.zip && chmod 600 enrollment-key && sudo -n install -d -o root -g root -m 0755 /opt/inventario-telemetria/python-3.12.16 && sudo -n tar -xzf python-3.12.16.tar.gz --strip-components=1 --no-same-owner -C /opt/inventario-telemetria/python-3.12.16 && sudo -n /opt/inventario-telemetria/python-3.12.16/bin/python3 -c 'import sys,ssl,venv,ensurepip; print(sys.version); print(ssl.OPENSSL_VERSION)' && sudo -n mv /opt/inventario-telemetria/venv /opt/inventario-telemetria/venv-python3.8-respaldo-20261124 && printf '\nRUNTIME_READY\n'
+
+RESULTADO CAPTURADO:
+<3.8-respaldo-20261124 && printf '\nRUNTIME_READY\n'                                 
+inventario-agente-0.2.0.zip: La suma coincide
+3.12.16 (main, Nov 20 2026, 18:22:43) [Clang 23.1.3 ]
+OpenSSL 3.5.9 29 Sep 2026
+
+RUNTIME_READY
+soporte@aydx-losmolinos-printer-p9-01:[~/inventario-install-20261124]: 
+
+INSTALACIÓN DEL SERVICIO
+COMANDO:
+set -o pipefail; { printf '\n'; cat /home/soporte/inventario-install-20261124/enrollment-key; printf '\n'; } | sudo -n /usr/bin/env PATH=/opt/inventario-telemetria/python-3.12.16/bin:/usr/sbin:/usr/bin:/sbin:/bin /bin/bash /home/soporte/inventario-install-20261124/inventario-agente-0.2.0/scripts/install-linux.sh --server-url https://inventario-api-jryilooe3a-uc.a.run.app 2>&1 | tee /home/soporte/inventario-install-20261124/instalacion-servicio.log; rc=$?; printf '\nINSTALL_EXIT=%s\n' "$rc"
+
+COMPROBACIÓN DEL AGENTE Y PROTECCIÓN DE ARCHIVOS
+COMANDO:
+date --iso-8601=seconds; sudo -n systemctl is-active telemetry-agent.service; sudo -n systemctl is-enabled telemetry-agent.service; sudo -n systemctl show telemetry-agent.service -p User -p Group -p MainPID -p NRestarts -p ActiveEnterTimestamp -p ExecMainStatus; sudo -n -u telemetry-agent /opt/inventario-telemetria/venv/bin/python -m telemetry_agent --version; sudo -n -u telemetry-agent /opt/inventario-telemetria/venv/bin/python -m telemetry_agent --config /etc/inventario-telemetria/agent.json --check-connection; sudo -n /usr/bin/python3 -c 'import json; print("device_id="+json.load(open("/var/lib/inventario-telemetria/identity.json"))["device_id"])'; sudo -n stat -c '%a %U %G %n' /etc/inventario-telemetria/agent.json /var/lib/inventario-telemetria/identity.json; python3 --version; rm -- /home/soporte/inventario-install-20261124/enrollment-key; printf '\nVERIFY_FINISHED\n'
+
+RESULTADO CAPTURADO:
+<261124/enrollment-key; printf '\nVERIFY_FINISHED\n'                                 
+2026-11-24T11:58:43-05:00
+active
+enabled
+MainPID=48070
+NRestarts=0
+ExecMainStatus=0
+User=telemetry-agent
+Group=telemetry-agent
+ActiveEnterTimestamp=Tue 2026-11-24 11:57:55 -05
+0.2.0
+{"device_id": null, "ok": true, "mode": "system", "checked_at": "2026-11-24T16:58:44.521788Z", "message": "Conexión con el receptor verificada."}
+device_id=e2c9b84d-7ee1-4478-902d-256eb46d3998
+640 root telemetry-agent /etc/inventario-telemetria/agent.json
+600 telemetry-agent telemetry-agent /var/lib/inventario-telemetria/identity.json
+Python 3.8.10
+
+VERIFY_FINISHED
+soporte@aydx-losmolinos-printer-p9-01:[~/inventario-install-20261124]: 
+
+VERIFICACIÓN FINAL DEL SERVICIO
+COMANDO:
+{ date --iso-8601=seconds; sudo -n systemctl is-active telemetry-agent.service; sudo -n systemctl is-enabled telemetry-agent.service; sudo -n systemctl show telemetry-agent.service -p User -p MainPID -p NRestarts -p ExecMainStatus; sudo -n -u telemetry-agent /opt/inventario-telemetria/venv/bin/python -c 'import sys,psutil,importlib.metadata; print("Python agente: "+sys.version.split()[0]); print("Agente: "+importlib.metadata.version("inventario-telemetria")); print("psutil: "+psutil.__version__)'; sudo -n /usr/bin/python3 -c 'import json; c=json.load(open("/etc/inventario-telemetria/agent.json")); print("Control remoto: "+str(c.get("remote_control_enabled",False))); print("Receptor: "+c["server_url"])'; sudo -n stat -c '%a %U %G %n' /etc/inventario-telemetria/agent.json /var/lib/inventario-telemetria/identity.json; python3 --version; sudo -n journalctl -u telemetry-agent.service -n 15 --no-pager; } 2>&1 | tee /home/soporte/inventario-install-20261124/verificacion-servicio.log
+
+RESULTADO CAPTURADO:
+<ventario-install-20261124/verificacion-servicio.log                                 
+2026-11-24T12:00:01-05:00
+active
+enabled
+MainPID=48070
+NRestarts=0
+ExecMainStatus=0
+User=telemetry-agent
+Python agente: 3.12.16
+Agente: 0.2.0
+psutil: 7.2.2
+Control remoto: False
+Receptor: https://inventario-api-jryilooe3a-uc.a.run.app
+640 root telemetry-agent /etc/inventario-telemetria/agent.json
+600 telemetry-agent telemetry-agent /var/lib/inventario-telemetria/identity.json
+Python 3.8.10
+-- Logs begin at Fri 2026-07-17 06:05:06 -05, end at Tue 2026-11-24 12:00:01 -05. --
+Nov 24 11:57:55 aydx-losmolinos-printer-p9-01 systemd[1]: Started Agente de telemetria de inventario.
+Nov 24 11:57:57 aydx-losmolinos-printer-p9-01 python[48070]: 2026-11-24 11:57:57,079 INFO Estado del equipo en el servidor: pending.
+Nov 24 12:00:00 aydx-losmolinos-printer-p9-01 python[48070]: 2026-11-24 12:00:00,469 INFO Estado del equipo en el servidor: active.
+Nov 24 12:00:00 aydx-losmolinos-printer-p9-01 python[48070]: 2026-11-24 12:00:00,838 INFO Telemetría recibida por el servidor.
+soporte@aydx-losmolinos-printer-p9-01:[~/inventario-install-20261124]: 
+
+REGISTRO ORIGINAL DEL INSTALADOR
+
+
+Processing /opt/inventario-telemetria/.source.2fHkqZ
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting psutil<8,>=5.9 (from inventario-telemetria==0.2.0)
+  Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl.metadata (22 kB)
+Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+Building wheels for collected packages: inventario-telemetria
+  Building wheel for inventario-telemetria (pyproject.toml): started
+  Building wheel for inventario-telemetria (pyproject.toml): finished with status 'done'
+  Created wheel for inventario-telemetria: filename=inventario_telemetria-0.2.0-py3-none-any.whl size=21881 sha256=f764db4ce9eb2d48a5dd16dd751b1eece9325ef3d5ccee1297ced3cfe1470533
+  Stored in directory: /tmp/pip-ephem-wheel-cache-ez7upuoz/wheels/71/08/45/74f42b720b6b03dd27343358c3fe77812b7f20bcce56e6df69
+Successfully built inventario-telemetria
+Installing collected packages: psutil, inventario-telemetria
+
+Successfully installed inventario-telemetria-0.2.0 psutil-7.2.2
+Created symlink /etc/systemd/system/multi-user.target.wants/telemetry-agent.service → /etc/systemd/system/telemetry-agent.service.
+Agente instalado. Configuración e identidad existentes conservadas.
+Estado: sudo systemctl status telemetry-agent.service
+Registro: sudo journalctl -u telemetry-agent.service -n 50 --no-pager
+
+
+VERIFICACIÓN FINAL EN EQUIPO
+2026-11-24T12:00:01-05:00
+active
+enabled
+MainPID=48070
+NRestarts=0
+ExecMainStatus=0
+User=telemetry-agent
+Python agente: 3.12.16
+Agente: 0.2.0
+psutil: 7.2.2
+Control remoto: False
+Receptor: https://inventario-api-jryilooe3a-uc.a.run.app
+640 root telemetry-agent /etc/inventario-telemetria/agent.json
+600 telemetry-agent telemetry-agent /var/lib/inventario-telemetria/identity.json
+Python 3.8.10
+-- Logs begin at Fri 2026-07-17 06:05:06 -05, end at Tue 2026-11-24 12:00:01 -05. --
+Nov 24 11:57:55 aydx-losmolinos-printer-p9-01 systemd[1]: Started Agente de telemetria de inventario.
+Nov 24 11:57:57 aydx-losmolinos-printer-p9-01 python[48070]: 2026-11-24 11:57:57,079 INFO Estado del equipo en el servidor: pending.
+Nov 24 12:00:00 aydx-losmolinos-printer-p9-01 python[48070]: 2026-11-24 12:00:00,469 INFO Estado del equipo en el servidor: active.
+Nov 24 12:00:00 aydx-losmolinos-printer-p9-01 python[48070]: 2026-11-24 12:00:00,838 INFO Telemetría recibida por el servidor.
+
+
+VERIFICACIÓN EN RECEPTOR DE PRODUCCIÓN
+INSPECT
+{
+  "checked_at": "2026-11-24T16:56:33.607Z",
+  "operation": "inspect",
+  "device_id": "e2c9b84d-7ee1-4478-902d-256eb46d3998",
+  "hostname": "aydx-losmolinos-printer-p9-01",
+  "status": "pending",
+  "connectivity": "pending",
+  "management_mode": "agent",
+  "group_id": "default",
+  "interval_seconds": 60,
+  "created_at": "2026-11-24T16:56:05.906Z",
+  "activated_at": null,
+  "last_seen_at": null,
+  "has_latest_snapshot": false,
+  "snapshot_fields": []
+}
+
+APPROVE
+{
+  "checked_at": "2026-11-24T16:57:37.142Z",
+  "operation": "approve",
+  "device_id": "e2c9b84d-7ee1-4478-902d-256eb46d3998",
+  "hostname": "aydx-losmolinos-printer-p9-01",
+  "status": "active",
+  "connectivity": "awaiting_data",
+  "management_mode": "agent",
+  "group_id": "default",
+  "interval_seconds": 60,
+  "created_at": "2026-11-24T16:56:05.906Z",
+  "activated_at": "2026-11-24T16:57:37.045Z",
+  "last_seen_at": null,
+  "has_latest_snapshot": false,
+  "snapshot_fields": []
+}
+
+VERIFY
+{
+  "checked_at": "2026-11-24T16:58:22.282Z",
+  "operation": "verify",
+  "device_id": "e2c9b84d-7ee1-4478-902d-256eb46d3998",
+  "hostname": "aydx-losmolinos-printer-p9-01",
+  "status": "active",
+  "connectivity": "online",
+  "management_mode": "agent",
+  "group_id": "default",
+  "interval_seconds": 60,
+  "created_at": "2026-11-24T16:56:05.906Z",
+  "activated_at": "2026-11-24T16:57:37.045Z",
+  "last_seen_at": "2026-11-24T16:58:09.572Z",
+  "has_latest_snapshot": true,
+  "snapshot_fields": [
+    "sample_id",
+    "collected_at",
+    "ram",
+    "disks",
+    "temperatures",
+    "uptime_seconds"
+  ]
+}
+
+
+RESULTADO: agente 0.2.0 instalado, servicio active/enabled, equipo active/online con telemetría confirmada.
+UUID: e2c9b84d-7ee1-4478-902d-256eb46d3998
+Grupo: General (default). Intervalo: 60 segundos.
+Se conservó Python 3.8.10 del sistema y el respaldo del entorno previo. No se reinició el equipo.
+Control remoto del agente desactivado. Configuración 640 root:telemetry-agent; identidad 600 telemetry-agent:telemetry-agent.
+Tiempos: el reloj remoto se observó aproximadamente 1 minuto 50 segundos adelantado; no se modificó. Las horas finales de recepción proceden del servidor y están en UTC en JSON.
+El documento y los registros excluyen contraseñas, claves y tokens.

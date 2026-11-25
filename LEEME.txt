@@ -1,0 +1,144 @@
+INSTALACIÓN DEL AGENTE DE INVENTARIO EN OTRO EQUIPO
+Versión del agente: 0.2.0 | Preparado el 24 de noviembre de 2026
+
+INICIO RÁPIDO
+
+1. Copie esta carpeta completa al equipo que desea registrar.
+2. Abra una terminal dentro de la carpeta y ejecute:
+
+   bash instalar-inventario-linux.sh
+
+3. Introduzca la contraseña del usuario Linux si sudo la solicita.
+4. Cuando aparezca "Código de instalación INV", pegue su código y pulse Enter.
+   EL CÓDIGO SE VE AL ESCRIBIRLO. El script no incluye un código predefinido.
+   Se entrega al agente por entrada estándar, sin añadirlo a argumentos ni a la
+   bitácora. El código se conserva en la configuración privada del agente.
+   Si deja el código vacío, se solicita la clave general mediante entrada oculta.
+5. El proceso confirma la inscripción e indica el UUID y el estado del equipo.
+6. Ingrese al panel de inventario, abra Solicitudes, identifique el nombre del
+   equipo, revise la compañía/sede asignada por el código y pulse Aprobar.
+7. Espere el siguiente ciclo y compruebe que el equipo aparezca En línea y con
+   una lectura reciente. El intervalo depende del grupo; el predeterminado es
+   60 segundos.
+
+Panel:
+https://inventario-equipos-dyd-261117.web.app
+
+Receptor:
+https://inventario-api-jryilooe3a-uc.a.run.app
+
+QUÉ HACE EL SCRIPT
+
+- Incluye el paquete del agente dentro del propio archivo .sh. Para instalar
+  normalmente basta con copiar ese archivo; el ZIP de agente/ es una copia
+  adicional para consulta o instalación manual.
+- Identifica el equipo y comprueba Linux x86_64, systemd, glibc >=2.17 y espacio
+  libre de al menos 512 MiB en /opt.
+- Instala python3, curl o ca-certificates mediante apt únicamente si faltan.
+- Verifica la huella SHA-256 del ZIP incluido y el manifiesto de sus archivos.
+- Comprueba por HTTPS que el receptor responde y corresponde al proyecto.
+- Utiliza Python del sistema si es >=3.10 y puede crear un venv con pip.
+  En caso contrario, descarga y verifica Python 3.12.16 de Astral y lo instala
+  aislado en /opt/inventario-telemetria/python-3.12.16.
+- Conserva Python del sistema. No añade repositorios ni cambia /usr/bin/python3.
+- Si encuentra un venv parcial incompatible e inactivo, lo conserva como
+  respaldo antes de crear el nuevo. Si el instalador falla, intenta restaurarlo.
+- Ejecuta el instalador del agente, habilita telemetry-agent.service y comprueba
+  su estado, dependencias, conexión HTTPS e inscripción ante el receptor.
+- No reinicia el equipo. Una instalación nueva no habilita control remoto.
+- Genera una bitácora privada con los pasos, resultados y errores de ejecución.
+
+REQUISITOS Y ALCANCE
+
+Preparado para Linux Mint/Ubuntu x86_64 con systemd, como los equipos 10.18.1.3
+y 10.18.1.6. Necesita permisos sudo y acceso a Internet para GitHub, PyPI y el
+receptor HTTPS. No es un instalador para Windows o ARM.
+
+El código INV determina la ubicación asociada en el inventario. No sustituye
+la aprobación administrativa. El script no incluye accesos administrativos
+al panel ni aprueba equipos automáticamente.
+
+INSTALACIONES ANTERIORES
+
+Se conserva la configuración y la identidad. Si ya existe agent.json, no se
+vuelve a pedir el código ni se cambia compañía, sede o grupo. Cambie la
+asignación desde el panel, sin borrar la identidad del equipo.
+
+El proceso se detiene si encuentra una identidad sin configuración, otro
+receptor configurado, una ruta de identidad personalizada, o un servicio
+activo con un venv incompatible. Esto requiere revisar la instalación previa.
+Un runtime aislado existente que no funcione también se conserva para revisión.
+
+COMANDOS ÚTILES
+
+Comprobar el paquete incluido sin sudo, red ni instalar servicios:
+  bash instalar-inventario-linux.sh --check
+
+Mostrar la ayuda:
+  bash instalar-inventario-linux.sh --help
+
+Comprobar el servicio:
+  sudo systemctl status telemetry-agent.service --no-pager
+
+Comprobar el arranque automático:
+  sudo systemctl is-enabled telemetry-agent.service
+
+Consultar los últimos mensajes del agente:
+  sudo journalctl -u telemetry-agent.service -n 30 --no-pager
+
+Probar solamente la conexión con el receptor:
+  sudo -u telemetry-agent /opt/inventario-telemetria/venv/bin/python -I -m telemetry_agent --config /etc/inventario-telemetria/agent.json --check-connection
+
+Verificar todos los archivos de esta carpeta:
+  sha256sum -c SHA256SUMS.txt
+
+RUTAS EN EL EQUIPO INSTALADO
+
+Servicio:       telemetry-agent.service
+Cuenta:         telemetry-agent
+Programa:       /opt/inventario-telemetria/venv
+Configuración:  /etc/inventario-telemetria/agent.json
+Identidad:      /var/lib/inventario-telemetria/identity.json
+Bitácora:       /var/log/inventario-telemetria/instalacion-FECHA-HORA-PID.log
+
+La ruta exacta de la bitácora aparece al finalizar. Para leerla use sudo con
+su nombre concreto. La configuración y la identidad son privadas del equipo;
+no copie esos dos archivos a otro equipo para instalarlo.
+
+SI NO APARECE EL EQUIPO O NO ENVÍA MÉTRICAS
+
+Revise el journal del agente. Un código incorrecto o revocado impide la
+inscripción; solicite uno vigente y corrija installation_code en la configuración
+privada con sudoedit. Después reinicie solamente telemetry-agent.service:
+
+  sudoedit /etc/inventario-telemetria/agent.json
+  sudo systemctl restart telemetry-agent.service
+
+Si el estado es pending, falta aprobarlo en Solicitudes. Si está disabled o
+rejected, revise su estado administrativo en el panel. Una prueba /health
+correcta confirma conectividad, pero no la validez del código.
+
+CONTENIDO DE ESTA CARPETA
+
+instalar-inventario-linux.sh       Instalador completo; código INV visible.
+instalar-inventario-linux.sh.sha256 Huella del instalador.
+LEEME.txt                         Este procedimiento e instrucciones de uso.
+VERIFICACION.txt                   Pruebas realizadas al generar el script.
+SHA256SUMS.txt                     Huellas de los archivos distribuidos.
+agente/                           ZIP original del agente y su huella.
+documentacion/                     Bitácoras PDF/TXT de ambos equipos y guía
+                                  general de instalación del agente.
+
+Las bitácoras PDF/TXT registran las ejecuciones anteriores, cuando el código
+se introducía oculto. El nuevo script completo usa entrada visible para el INV,
+tal como se solicitó. El instalador básico dentro del ZIP original conserva
+su comportamiento anterior; use instalar-inventario-linux.sh para este flujo.
+
+FUENTES Y HUELLAS DEL RUNTIME
+
+Astral Python Standalone Builds:
+https://docs.astral.sh/python-build-standalone/
+Publicación: https://github.com/astral-sh/python-build-standalone/releases/tag/20261123
+Runtime: CPython 3.12.16, GNU/Linux x86_64, install_only_stripped.
+SHA-256: c85811d35971d06612585a057db3b71806378df6ea8476275fb16aa5c9fe56a0
+SHA-256 ZIP agente 0.2.0: 95f7c6985e3bbdbf835c264239789f9cdd6a14901189f0efe4499f0f248f2331
