@@ -1,6 +1,6 @@
 # Instalador de Inventario para Linux
 
-Repositorio privado del instalador del agente de inventario para equipos Linux Mint/Ubuntu x86_64.
+Repositorio del instalador del agente de inventario para Linux Mint/Ubuntu x86_64.
 
 ## Requisitos
 
@@ -10,44 +10,31 @@ Repositorio privado del instalador del agente de inventario para equipos Linux M
 - Acceso a Internet para GitHub, PyPI y el receptor HTTPS.
 - Terminal interactiva: el instalador pide el código INV al ejecutarse.
 
-## Acceso al repositorio
+## Descargar e instalar en una sede
 
-Este repositorio es privado. Para descargar el instalador se necesita un token de GitHub de solo lectura, creado así:
-
-1. GitHub -> Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens -> Generate new token.
-2. Repository access: Only select repositories -> este repositorio.
-3. Permissions -> Contents: Read-only.
-4. Expiración recomendada: entre 30 y 90 días.
-5. Copiar el token una sola vez y entregarlo únicamente a las sedes autorizadas.
-
-El token es un secreto. No debe escribirse en el README, en el repositorio, en Git ni en archivos compartidos de forma pública. Si se filtra, debe revocarse y generar uno nuevo.
-
-## Descarga y ejecución en cada sede
-
-Reemplazar `<USUARIO>`, `<REPO>` y `<REF>` por los datos del repositorio. `<REF>` puede ser `v0.2.0` o `main`.
+Una sola línea descarga el repositorio completo, verifica los archivos y ejecuta el instalador:
 
 ```bash
-OWNER="<USUARIO>"; REPO="<REPO>"; REF="<REF>"
-read -rsp "Token GitHub: " GH_TOKEN; echo
-BASE="https://api.github.com/repos/$OWNER/$REPO/contents"
-curl -fsSL --proto '=https' -H "Authorization: Bearer $GH_TOKEN" \
-  -H "Accept: application/vnd.github.raw" \
-  "$BASE/instalar-inventario-linux.sh?ref=$REF" -o instalar-inventario-linux.sh
-curl -fsSL --proto '=https' -H "Authorization: Bearer $GH_TOKEN" \
-  -H "Accept: application/vnd.github.raw" \
-  "$BASE/instalar-inventario-linux.sh.sha256?ref=$REF" -o instalar-inventario-linux.sh.sha256
-unset GH_TOKEN
-sha256sum -c instalar-inventario-linux.sh.sha256
-sudo bash instalar-inventario-linux.sh
+cd /home/soporte && git clone --depth 1 https://github.com/JulioDyD/instalador-inventario-linux.git && cd instalador-inventario-linux && sha256sum -c SHA256SUMS.txt && sudo bash instalar-inventario-linux.sh
 ```
 
-El token se solicita de forma oculta para que no quede en el historial del shell.
+Si `git` no está instalado:
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+```
+
+También se puede descargar el ZIP del repositorio:
+
+```bash
+cd /home/soporte && curl -fsSL -o repo.zip https://github.com/JulioDyD/instalador-inventario-linux/archive/refs/heads/main.zip && unzip -q repo.zip && cd instalador-inventario-linux-main && sha256sum -c SHA256SUMS.txt && sudo bash instalar-inventario-linux.sh
+```
 
 ## Durante la instalación
 
 1. El script verifica el paquete incluido y el receptor HTTPS.
 2. Si el Python del sistema no es compatible, descarga Python 3.12.16 aislado en `/opt`.
-3. Solicita el código INV. El código se ve al escribirlo.
+3. Solicita el código INV. El código se obtiene de la plataforma y se pega en ese momento.
 4. Instala y habilita `telemetry-agent.service`.
 5. Confirma el UUID y el estado inicial del equipo.
 6. Ingresar al panel de inventario, abrir Solicitudes, revisar la compañía/sede y aprobar el equipo.
@@ -55,11 +42,19 @@ El token se solicita de forma oculta para que no quede en el historial del shell
 
 Panel: https://inventario-equipos-dyd-261117.web.app
 
+## Contenido del repositorio
+
+- `instalar-inventario-linux.sh`: instalador completo y autocontenido. Es lo único necesario para instalar.
+- `instalar-inventario-linux.sh.sha256`: huella del instalador.
+- `agente/`: ZIP del agente y su huella. El instalador ya lo incluye embebido.
+- `documentacion/`: bitácoras de instalación y guía de referencia.
+- `LEEME.txt`, `VERIFICACION.txt` y `SHA256SUMS.txt`: documentación y verificación del paquete.
+
 ## Verificación
 
 La huella esperada del instalador versión 0.2.0 es:
 
-```
+```text
 ca0e2313bda988d08e3fe76e5b12cb39138244194ffc5deb76d232e47732a70d
 ```
 
@@ -69,7 +64,13 @@ Comprobar el paquete sin instalar nada:
 bash instalar-inventario-linux.sh --check
 ```
 
-## Comandos útiles
+Verificar todos los archivos del repositorio:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+```
+
+## Comandos útiles después de instalar
 
 ```bash
 sudo systemctl status telemetry-agent.service --no-pager
@@ -77,8 +78,9 @@ sudo systemctl is-enabled telemetry-agent.service
 sudo journalctl -u telemetry-agent.service -n 30 --no-pager
 ```
 
-## Seguridad
+## Notas de seguridad
 
-- El repositorio incluye documentación interna con IPs, hostnames y UUIDs de equipos. No compartir el token ni el repositorio fuera del personal autorizado.
-- El token compartido permite leer todo el repositorio. Si se requiere auditoría por persona, usar un token por sede o invitarlos como colaboradores.
+- El repositorio y su documentación son públicos. No agregar códigos INV, claves, tokens ni credenciales.
+- El código INV se solicita al ejecutar el instalador y no se guarda en este repositorio.
 - No ejecutar el instalador con `curl | bash`: requiere terminal interactiva y debe descargarse primero.
+- El equipo queda pendiente hasta que se apruebe en Solicitudes del panel.
