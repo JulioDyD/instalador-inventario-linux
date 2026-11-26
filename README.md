@@ -32,6 +32,20 @@ También se puede descargar el ZIP del repositorio:
 cd /home/soporte && curl -fsSL -o repo.zip https://github.com/JulioDyD/instalador-inventario-linux/archive/refs/heads/main.zip && unzip -q repo.zip && cd instalador-inventario-linux-main && sha256sum -c SHA256SUMS.txt && sudo bash instalar-inventario-linux.sh
 ```
 
+## Opción solo instalador
+
+Si solo necesitas el archivo y no el resto del repositorio:
+
+```bash
+mkdir -p /home/soporte/inv-0.3.1 && cd /home/soporte/inv-0.3.1
+curl -fsSLO https://github.com/JulioDyD/instalador-inventario-linux/releases/latest/download/instalar-inventario-linux.sh
+curl -fsSLO https://github.com/JulioDyD/instalador-inventario-linux/releases/latest/download/instalar-inventario-linux.sh.sha256
+sha256sum -c instalar-inventario-linux.sh.sha256
+sudo bash instalar-inventario-linux.sh
+```
+
+El repositorio `instalador-inventario-linux-dist` quedó archivado. Este repositorio es la fuente única y se actualizará con cada versión.
+
 ## Importante: la ejecución normal hace una reinstalación limpia
 
 La versión 0.3.1 realiza un reset local total antes de instalar. Elimina la aplicación, el venv, los runtimes anteriores, la configuración y la identidad en:
