@@ -2,6 +2,8 @@
 
 Repositorio del instalador del agente de inventario para Linux Mint/Ubuntu x86_64.
 
+Versión actual: **0.3.1** (25 de noviembre de 2026).
+
 ## Requisitos
 
 - Linux Mint o Ubuntu x86_64.
@@ -30,14 +32,30 @@ También se puede descargar el ZIP del repositorio:
 cd /home/soporte && curl -fsSL -o repo.zip https://github.com/JulioDyD/instalador-inventario-linux/archive/refs/heads/main.zip && unzip -q repo.zip && cd instalador-inventario-linux-main && sha256sum -c SHA256SUMS.txt && sudo bash instalar-inventario-linux.sh
 ```
 
+## Importante: la ejecución normal hace una reinstalación limpia
+
+La versión 0.3.1 realiza un reset local total antes de instalar. Elimina la aplicación, el venv, los runtimes anteriores, la configuración y la identidad en:
+
+```text
+/opt/inventario-telemetria
+/etc/inventario-telemetria
+/var/lib/inventario-telemetria
+```
+
+También sustituye `telemetry-agent.service` y elimina sus drop-ins. Conserva los logs y la cuenta `telemetry-agent`.
+
+El reset no es reversible con la identidad anterior. Si una fase posterior falla, la instalación previa ya no queda disponible para seguir funcionando. El instalador debe corregirse o repetirse después de resolver el diagnóstico.
+
+Al borrar la identidad local se generan un UUID y un token nuevos. Es necesario introducir otra vez el código INV y aprobar el nuevo registro en el panel. La ficha anterior no se elimina automáticamente y puede quedar otra ficha del mismo equipo.
+
 ## Durante la instalación
 
-1. El script verifica el paquete incluido y el receptor HTTPS.
-2. Si el Python del sistema no es compatible, descarga Python 3.12.16 aislado en `/opt`.
-3. Solicita el código INV. El código se obtiene de la plataforma y se pega en ese momento.
+1. El script verifica el ZIP incorporado, el runtime, los SHA-256 y el receptor HTTPS.
+2. Solicita el código INV. El código se obtiene de la plataforma, se escribe visible y no se guarda en la bitácora.
+3. Instala Python portátil 3.12.16 aislado en `/opt` y prueba su ejecución como `telemetry-agent`.
 4. Instala y habilita `telemetry-agent.service`.
 5. Confirma el UUID y el estado inicial del equipo.
-6. Ingresar al panel de inventario, abrir Solicitudes, revisar la compañía/sede y aprobar el equipo.
+6. Ingresar al panel de inventario, abrir Solicitudes, revisar la compañía/sede y aprobar el nuevo registro.
 7. Esperar el siguiente ciclo y comprobar que el equipo aparezca En línea.
 
 Panel: https://inventario-equipos-dyd-261117.web.app
@@ -46,22 +64,28 @@ Panel: https://inventario-equipos-dyd-261117.web.app
 
 - `instalar-inventario-linux.sh`: instalador completo y autocontenido. Es lo único necesario para instalar.
 - `instalar-inventario-linux.sh.sha256`: huella del instalador.
-- `agente/`: ZIP del agente y su huella. El instalador ya lo incluye embebido.
-- `documentacion/`: bitácoras de instalación y guía de referencia.
-- `LEEME.txt`, `VERIFICACION.txt` y `SHA256SUMS.txt`: documentación y verificación del paquete.
+- `agente/`: ZIP del agente 0.3.1 y su huella. El instalador ya lo incluye embebido.
+- `documentacion/`: guía del agente 0.3.1 y bitácoras históricas de 0.2.0.
+- `CAMBIOS.txt`, `CONTENIDO.txt`, `LEEME.txt`, `VERIFICACION.txt` y `SHA256SUMS.txt`: documentación y verificación del paquete.
 
 ## Verificación
 
-La huella esperada del instalador versión 0.2.0 es:
+Huella esperada del instalador 0.3.1:
 
 ```text
-ca0e2313bda988d08e3fe76e5b12cb39138244194ffc5deb76d232e47732a70d
+a996ce64db54d704f1e10b618bb1e41201770ec34d2ebcfcc9339c659c66558c
 ```
 
 Comprobar el paquete sin instalar nada:
 
 ```bash
 bash instalar-inventario-linux.sh --check
+```
+
+Revisar una instalación existente sin borrar, reiniciar ni instalar:
+
+```bash
+bash instalar-inventario-linux.sh --verify
 ```
 
 Verificar todos los archivos del repositorio:

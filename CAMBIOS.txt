@@ -1,0 +1,41 @@
+CAMBIOS DEL INSTALADOR LINUX 0.3.1
+25 de noviembre de 2026
+
+CAMBIOS DE COMPORTAMIENTO
+- La ejecución normal hace una reinstalación limpia con reset local total.
+  Elimina aplicación, venv, runtime anterior, configuración e identidad en
+  /opt/inventario-telemetria, /etc/inventario-telemetria y
+  /var/lib/inventario-telemetria; sustituye telemetry-agent.service y elimina
+  sus drop-ins. Conserva los logs y la cuenta telemetry-agent.
+- Verifica ZIP, runtime y sus SHA-256, HTTPS y montaje de destino; pide el
+  código INV visible antes de detener la instalación anterior. La clave
+  general opcional, cuando se solicita, sigue siendo oculta.
+- Instala siempre Python portátil 3.12.16 nuevo bajo /opt. Normaliza permisos
+  del runtime y prueba su ejecución como telemetry-agent antes del servicio.
+- Añade diagnóstico de permisos, montajes noexec y errores 203/EXEC. No
+  desactiva políticas de seguridad ni fuerza cambios de montaje.
+- --check verifica el paquete sin root ni red. --verify inspecciona la
+  instalación sin borrar, instalar ni reiniciar y revisa el arranque estable
+  durante un máximo de 60 segundos, con tres comprobaciones activas seguidas.
+
+CONSECUENCIA PARA EL PANEL
+La identidad nueva genera otro UUID/token y exige introducir el código otra
+vez y aprobar el registro nuevo. La ficha anterior NO se elimina de forma
+automática. El receptor y el panel utilizados no cambian.
+
+VALIDACIÓN LOCAL COMPLETADA
+- 43 pruebas automatizadas aprobadas: 32 del instalador completo y 11 de
+  configuración e inscripción mediante código de instalación.
+- Integridad SHA-256, manifiesto del paquete y sintaxis Bash: correctos.
+- Borrado acotado y orden de parada, limpieza y reinstalación: comprobados
+  con archivos temporales y servicios simulados.
+- Permisos 755/644, Python inicialmente sin permiso de ejecución, montajes
+  noexec, fallos de descarga y bucles 203/EXEC: comprobados con simulaciones.
+- Código INV visible en terminal, sin guardarlo en bitácora ni argumentos;
+  clave general oculta y tres muestras estables del servicio: comprobados.
+
+VALIDACIÓN EN EQUIPO DE DESTINO PENDIENTE
+No se ejecutó esta reinstalación en 10.18.4.230 ni se modificó ese equipo.
+Quedan por comprobar allí la ejecución real como telemetry-agent, el nuevo
+UUID, su aprobación en el panel y la recepción del inventario. Las pruebas
+locales no certifican esas operaciones. Detalle en VERIFICACION.txt.

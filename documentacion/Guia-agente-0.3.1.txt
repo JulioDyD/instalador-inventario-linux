@@ -1,0 +1,94 @@
+# Agente de inventario para los equipos
+
+Este paquete contiene el agente Python `telemetry_agent` y sus instaladores. Los equipos necesitan Python **3.10 o superior** y acceso a Internet para instalar las dependencias. No necesitan el backend, el panel, Node.js ni credenciales de Firebase.
+
+Receptor de producción: `https://inventario-api-jryilooe3a-uc.a.run.app`
+
+Panel: https://inventario-equipos-dyd-261117.web.app
+
+Solicita al administrador un **código de instalación** para el grupo, compañía y sede correspondientes. Si el equipo debe quedar en el inventario general, deja el código vacío y utiliza la **clave general de inscripción vigente**. Sólo necesitas una de esas dos credenciales. La contraseña de acceso al panel no sirve para inscribir equipos. El ZIP es genérico: no contiene códigos ni claves reales.
+
+## Linux: instalador completo con reinstalación limpia
+
+El archivo autocontenido `instalar-inventario-linux.sh` incluye el agente **0.3.1** y se ejecuta con `bash instalar-inventario-linux.sh`. Solicita el código INV con entrada visible. Verifica el paquete, el runtime y el receptor antes de detener la instalación anterior.
+
+Su ejecución normal **elimina la instalación local anterior**, incluida la configuración y la identidad: `/opt/inventario-telemetria`, `/etc/inventario-telemetria`, `/var/lib/inventario-telemetria`, la unidad `telemetry-agent.service` y sus ajustes locales. Conserva las bitácoras y la cuenta de servicio. Instala un Python portátil 3.12.16 nuevo dentro de `/opt`, normaliza sus permisos y comprueba su ejecución como `telemetry-agent` antes de iniciar el servicio. No cambia el Python del sistema ni modifica montajes `noexec`.
+
+La identidad nueva requiere **aprobar otra solicitud** en el panel. La ficha anterior del inventario no se elimina automáticamente. Para revisar una instalación existente sin reinstalar, utiliza `bash instalar-inventario-linux.sh --verify`; `--check` sólo verifica el paquete incluido, sin sudo ni red. Si el arranque falla, se muestran el estado detallado y el journal del servicio, incluidos errores `203/EXEC`.
+
+Las instrucciones siguientes describen los instaladores básicos incluidos en el ZIP de fuentes, que conservan configuración e identidad.
+
+## Linux: instalación nueva como servicio
+
+Requisitos: `python3` con soporte `venv` y `pip`, systemd y permisos sudo. Extrae el ZIP y abre una terminal dentro de su carpeta `inventario-agente-0.3.1`:
+
+```bash
+sudo bash scripts/install-linux.sh --server-url https://inventario-api-jryilooe3a-uc.a.run.app
+```
+
+El instalador pide primero el código de instalación sin mostrarlo. Si pulsas Enter sin código, solicita la clave general, también oculta. Instala las dependencias y arranca `telemetry-agent.service`. El servicio se inicia con el sistema y vuelve a arrancar si el proceso falla. Se ejecuta como el usuario de servicio `telemetry-agent`, sin activar terminal ni reinicios remotos.
+
+Comprobar el estado y los registros:
+
+```bash
+sudo systemctl status telemetry-agent.service
+sudo journalctl -u telemetry-agent.service -n 50 --no-pager
+```
+
+La configuración queda en `/etc/inventario-telemetria/agent.json`; la identidad propia del equipo, en `/var/lib/inventario-telemetria/identity.json`.
+
+## Windows: instalación nueva al arrancar
+
+Requisitos: Python 3.10 o superior accesible como `python`, PowerShell 5.1 o superior y una consola de PowerShell abierta como administrador. Dentro de la carpeta extraída:
+
+```powershell
+.\scripts\install-windows.ps1 -ServerUrl "https://inventario-api-jryilooe3a-uc.a.run.app" -PythonExe "python"
+```
+
+El instalador pide primero el código, con entrada protegida. Si lo dejas vacío, pide la clave general con la misma protección. Instala las dependencias y crea e inicia la tarea `InventarioTelemetriaAgent` para el arranque de Windows. La tarea se ejecuta como SYSTEM; no habilita control remoto. Si Python tiene otra ubicación, usa su ruta absoluta en `-PythonExe`.
+
+La configuración y la identidad quedan en `%ProgramData%\InventarioTelemetria`. El instalador Windows está incluido; no se ha verificado su ejecución nativa en Windows en este entorno.
+
+## Aprobar el equipo
+
+En el panel, inicia sesión como administrador y entra en **Solicitudes**. Revisa y aprueba cada equipo. Un código válido asigna la solicitud al grupo de destino y hereda su compañía, sede y políticas de monitoreo; no evita la aprobación. Sin código, la clave general crea la solicitud en **General**. Después de la aprobación comenzará a enviar métricas según la política del grupo; el intervalo predeterminado es de 60 segundos.
+
+Un código incorrecto o revocado produce un error de inscripción: el agente no usa la clave general como alternativa ni envía el equipo a General. Solicita al administrador el código correcto y actualiza `installation_code` en la configuración privada. No publiques la configuración ni pegues códigos en comandos o registros.
+
+Cada instalación genera un UUID y un token propios. Distribuye este ZIP de fuentes, nunca la carpeta de estado de otro equipo. Conserva la identidad de cada instalación para que sus reinicios no creen registros diferentes.
+
+## Si ya existe una instalación
+
+Los instaladores conservan la configuración y la identidad existentes. No vuelven a pedir código o clave y **no reasignan** un equipo registrado a otra compañía, sede o grupo. Pasar una URL nueva **no cambia** la instalación anterior ni crea un perfil paralelo. Revisa el receptor configurado antes de reutilizarlos para mover un equipo del entorno local a producción. Los cambios de asignación de un equipo ya registrado se hacen desde el panel; no borres su identidad para moverlo.
+
+Las configuraciones anteriores sin `installation_code` siguen funcionando. Actualiza al agente 0.2.0 o posterior antes de añadir ese campo a una configuración antigua. La identidad UUID/token permanece en su archivo separado y se conserva en cada actualización.
+
+La versión **0.3.1** añade información de red. Para actualizar conservando identidad, extrae el ZIP nuevo y ejecuta de nuevo el instalador básico de tu sistema desde esa carpeta. En ese flujo no hace falta generar otro código, volver a inscribir ni aprobar un equipo ya registrado. El instalador Linux completo tiene el comportamiento de reinstalación limpia explicado arriba y genera una identidad nueva. La sección Información de red aparecerá después de recibir una lectura del agente actualizado; en equipos con agentes anteriores el panel indicará que la actualización está pendiente.
+
+## Información de red
+
+Cada lectura del agente 0.3.1 incluye las interfaces disponibles, sus direcciones IPv4/IPv6, MAC, estado de conexión y, cuando el sistema lo informa, velocidad de enlace y MTU. Se incluyen interfaces locales y de VPN. El estado corresponde al enlace de la interfaz y no demuestra acceso a Internet; la velocidad informada es la del enlace, no una prueba de velocidad.
+
+Los datos se consultan en el detalle del equipo, junto con la hora de la última lectura. Una interfaz puede tener varias IP y puede no tener una MAC o velocidad disponibles. Si el sistema impide leer las interfaces, las otras métricas continúan enviándose. Los equipos manuales no generan información de red automática. No se consultan servicios externos para averiguar una IP pública ni se recopilan contraseñas de red.
+
+## Prueba manual sin instalar servicio
+
+Si sólo quieres probar el agente en primer plano, crea su entorno virtual e instala el paquete desde esta carpeta:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install '.[agent]'
+cp agent-config.example.json agent.json
+chmod 600 agent.json
+```
+
+Edita `agent.json` en un editor: para una ubicación concreta, coloca el código entregado por el administrador en `installation_code` y deja `enrollment_key` vacío. Para inventario general, deja `installation_code` vacío y sustituye la clave de ejemplo en `enrollment_key` por la clave vigente. La URL ya corresponde al receptor real. Después:
+
+```bash
+.venv/bin/python -m telemetry_agent --config agent.json --check-connection
+.venv/bin/python -m telemetry_agent --config agent.json
+```
+
+La primera orden comprueba HTTPS sin crear identidad ni enviar métricas; no valida el código ni la clave de inscripción. La segunda solicita inscripción, espera aprobación y continúa enviando lecturas. Si existen ambos valores en una configuración, el agente utiliza exclusivamente el código, sin intentar la clave si falla. Detener esa terminal detiene el agente manual. En Windows, usa `.venv\Scripts\python.exe` para ejecutar el módulo.
+
+La recopilación de temperatura y número de serie depende de los sensores y permisos que ofrezca el equipo. Si alguno no está disponible, la recepción de las demás métricas continúa.

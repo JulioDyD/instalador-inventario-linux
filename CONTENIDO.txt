@@ -1,0 +1,16 @@
+CONTENIDO DE LA ENTREGA 0.3.1
+
+instalar-inventario-linux.sh: instalador completo que debe ejecutar.
+LEEME.txt: ejecución, limpieza y aprobación del nuevo registro.
+CAMBIOS.txt: cambios del instalador y validaciones.
+VERIFICACION.txt: pruebas locales y comprobaciones pendientes en destino.
+SHA256SUMS.txt: integridad de los archivos de esta carpeta.
+agente/: ZIP del código fuente 0.3.1 y su SHA-256. El paquete ya está
+incorporado en el instalador completo. Para la limpieza y reinstalación
+solicitadas ejecute instalar-inventario-linux.sh de la raíz de esta carpeta.
+documentacion/: guía del agente y bitácoras históricas de 0.2.0.
+
+Para comprobar todos los archivos sin instalar:
+  sha256sum -c SHA256SUMS.txt
+Para comprobar el paquete incorporado sin red ni privilegios:
+  bash instalar-inventario-linux.sh --check
